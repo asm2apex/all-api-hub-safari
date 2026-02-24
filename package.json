@@ -11,6 +11,7 @@
     "dev:mobile:firefox": "node scripts/android-dev.js",
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
+    "build:safari": "node scripts/build-safari.js",
     "build:all": "pnpm run build && pnpm run build:firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
