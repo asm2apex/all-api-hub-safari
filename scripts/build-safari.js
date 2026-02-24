@@ -3,7 +3,12 @@ import fs from "node:fs"
 import path from "node:path"
 
 const appName = process.env.SAFARI_APP_NAME || "AllAPIHub"
-const bundleId = process.env.SAFARI_BUNDLE_ID || "com.asm2apex.allapihub"
+const bundleIdOwner =
+  process.env.SAFARI_BUNDLE_ID_OWNER || getMacUserIdForBundleId()
+const bundleIdBase =
+  process.env.SAFARI_BUNDLE_ID_BASE ||
+  process.env.SAFARI_BUNDLE_ID ||
+  `com.${bundleIdOwner}.allapihub`
 const sourceDir = process.env.SAFARI_SOURCE_DIR || ".output/chrome-mv3"
 const projectLocation = process.env.SAFARI_PROJECT_LOCATION || ".output/safari"
 const platform =
@@ -17,6 +22,7 @@ const extraLegacyNames = (process.env.SAFARI_CLEAN_LEGACY_NAMES || "")
 const legacyAppNames = Array.from(
   new Set(["AllAPIHub", "All API Hub", ...extraLegacyNames]),
 ).filter((name) => name !== appName)
+const bundleId = bundleIdBase.replace(/\.+$/, "")
 
 /**
  *
@@ -33,6 +39,56 @@ function quote(value) {
 function run(command) {
   console.log(`\n> ${command}`)
   execSync(command, { stdio: "inherit" })
+}
+
+/**
+ *
+ * @param input
+ */
+function normalizeBundleSegment(input) {
+  const normalized = String(input)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+  if (!normalized) {
+    return "localuser"
+  }
+  return /^[0-9]/.test(normalized) ? `u${normalized}` : normalized
+}
+
+/**
+ *
+ */
+function getMacUserIdForBundleId() {
+  const candidates = [
+    process.env.SUDO_USER,
+    process.env.USER,
+    process.env.LOGNAME,
+  ]
+
+  for (const value of candidates) {
+    if (value && value.trim()) {
+      return normalizeBundleSegment(value.trim())
+    }
+  }
+
+  try {
+    const userFromId = runText("id -un")
+    if (userFromId) {
+      return normalizeBundleSegment(userFromId)
+    }
+  } catch {
+    // no-op
+  }
+
+  return "localuser"
+}
+
+/**
+ *
+ * @param command
+ */
+function runText(command) {
+  return execSync(command, { encoding: "utf8" }).trim()
 }
 
 /**
